@@ -28,9 +28,8 @@ public class MainActivity extends FragmentActivity {
 
         BottomNavigationView navigationView = findViewById(R.id.buttom_navigation);
         navigationView.setOnNavigationItemSelectedListener(navItemSelectedListener);
-
+        // Checks if any permissions are in use
         checkAndRequestPermissions();
-
     }
 
     private BottomNavigationView.OnNavigationItemSelectedListener navItemSelectedListener =
