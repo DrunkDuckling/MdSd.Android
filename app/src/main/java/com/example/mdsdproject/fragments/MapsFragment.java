@@ -3,8 +3,6 @@ package com.example.mdsdproject.fragments;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.Resources;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -14,6 +12,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -26,25 +25,12 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MapStyleOptions;
+import com.google.android.gms.maps.model.MarkerOptions;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLConnection;
-import java.security.Permissions;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class MapsFragment extends Fragment implements LocationListener {
 
@@ -65,7 +51,7 @@ public class MapsFragment extends Fragment implements LocationListener {
     Location startPoint = new Location("locationA"); // Used for distance measuring
     Location endPoint = new Location("locationB"); // Used for distance measuring
 
-    @SuppressLint("MissingPermission")
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -77,9 +63,18 @@ public class MapsFragment extends Fragment implements LocationListener {
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        View view = inflater.inflate(R.layout.fragment_maps, container, false);
         locationManager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 10, this);
-        return inflater.inflate(R.layout.fragment_maps, container, false);
+
+        Bundle bundle = getArguments();
+        if (bundle != null){
+            filterQuery = bundle.getString("location");
+            distanceThreshold = bundle.getDouble("radius");
+        }
+        Toast.makeText(getActivity().getApplicationContext(), "BUTTON" + filterQuery + distanceThreshold, Toast.LENGTH_LONG).show();
+
+        return view;
     }
 
     @Override
@@ -122,8 +117,6 @@ public class MapsFragment extends Fragment implements LocationListener {
         if (mMap != null) {
             mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(location.getLatitude(), location.getLongitude()), 14));
             new GetPlacesAsyncTask(location).execute();
-            //findNearLocation(location);
-            System.out.println("HERE");
         }
     }
 
@@ -158,6 +151,23 @@ public class MapsFragment extends Fragment implements LocationListener {
         @Override
         protected void onPostExecute(Void aVoid) {
             super.onPostExecute(aVoid);
+            mMap.clear();
+
+            for (int i = 0; i < findPlaces.size(); i++) {
+                if (findPlaces.get(i) != null) {
+                    Places placeDetail = findPlaces.get(i);
+                    endPoint.setLatitude(placeDetail.getLatitude());
+                    endPoint.setLongitude(placeDetail.getLongitude());
+
+                    if (asyncLoc.distanceTo(endPoint) < distanceThreshold) {
+                        LatLng place = new LatLng(findPlaces.get(i).getLatitude(), findPlaces.get(i).getLongitude());
+                        MarkerOptions marker = new MarkerOptions().position(place).title(findPlaces.get(i).getName());
+                        marker.icon(BitmapDescriptorFactory.fromBitmap(placeDetail.getBitmap()));
+
+                        mMap.addMarker(marker);
+                    }
+                }
+            }
         }
     }
 
@@ -166,7 +176,6 @@ public class MapsFragment extends Fragment implements LocationListener {
         if (getActivity() != null) {
             PlacesService service = new PlacesService(getActivity().getResources().getString(R.string.google_maps_key));
             findPlaces = service.findPlaces(location.getLatitude(), location.getLongitude(), filterQuery, distanceThreshold);
-            Log.i(TAG, "findNearLocation: " + findPlaces);
             placeNames = new String[findPlaces.size()];
             imageUrl = new String[findPlaces.size()];
 

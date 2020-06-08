@@ -30,6 +30,8 @@ public class MainActivity extends FragmentActivity {
         navigationView.setOnNavigationItemSelectedListener(navItemSelectedListener);
         // Checks if any permissions are in use
         checkAndRequestPermissions();
+        getSupportFragmentManager().beginTransaction().replace(R.id.container_frame_layout,
+                new SettingsFragment()).commit();
     }
 
     private BottomNavigationView.OnNavigationItemSelectedListener navItemSelectedListener =
